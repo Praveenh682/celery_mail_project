@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  django:
+    build: .
+    container_name: django_app_celery
+    command: gunicorn --bind 0.0.0.0:8000 my_project.wsgi:application
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - DEBUG=1
+      - DJANGO_SETTINGS_MODULE=my_project.settings
+
+  celery:
+    build: .
+    container_name: celery_worker
+    command: celery -A my_project worker --pool=solo --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - django
+      - redis
+    environment:
+      - DEBUG=1
+      - DJANGO_SETTINGS_MODULE=my_project.settings
+
+  redis:
+    image: redis:alpine
+    container_name: redis_cache
+    restart: always
+    ports:
+      - "6379:6379"
